@@ -1,0 +1,71 @@
+package com.example.mcai;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.BlockPos;
+
+import java.util.Locale;
+
+public final class LocalAiBrain {
+    private LocalAiBrain() {
+    }
+
+    public static String answer(MinecraftClient client, String prompt) {
+        String normalized = prompt.toLowerCase(Locale.ROOT);
+        ClientPlayerEntity player = client.player;
+
+        if (player == null) {
+            return "Join a world first. I can read player data only while you are in-game.";
+        }
+
+        if (containsAny(normalized, "help", "commands", "что умеешь", "помощь")) {
+            return "I can show coords, health, held item, world time, and basic survival hints. This is local logic, not a cloud LLM yet.";
+        }
+
+        if (containsAny(normalized, "coord", "position", "where am i", "коорд", "позиция", "где я")) {
+            BlockPos pos = player.getBlockPos();
+            return "Your position: X=" + pos.getX() + ", Y=" + pos.getY() + ", Z=" + pos.getZ() + ".";
+        }
+
+        if (containsAny(normalized, "health", "hp", "хп", "здоров")) {
+            return "Health: " + Math.round(player.getHealth()) + "/" + Math.round(player.getMaxHealth()) + ". Food: " + player.getHungerManager().getFoodLevel() + "/20.";
+        }
+
+        if (containsAny(normalized, "item", "hand", "предмет", "руке")) {
+            ItemStack stack = player.getMainHandStack();
+            if (stack.isEmpty()) {
+                return "Your main hand is empty.";
+            }
+            return "Main hand: " + stack.getName().getString() + " x" + stack.getCount() + ".";
+        }
+
+        if (containsAny(normalized, "time", "day", "night", "время", "день", "ночь")) {
+            if (client.world == null) {
+                return "World is not loaded.";
+            }
+            long timeOfDay = client.world.getTimeOfDay() % 24000L;
+            String phase = timeOfDay >= 13000L && timeOfDay <= 23000L ? "night" : "day";
+            return "World time: " + timeOfDay + " ticks, phase: " + phase + ".";
+        }
+
+        if (containsAny(normalized, "diamond", "алмаз")) {
+            return "For diamonds in modern Minecraft, mine deep underground, check caves, and use Fortune if you have it. Do not dig straight down.";
+        }
+
+        if (containsAny(normalized, "nether", "незер", "ад")) {
+            return "Before Nether: take gold armor, blocks, food, flint and steel, and remember portal coordinates.";
+        }
+
+        return "I understood the message, but this build has only local rules. To make real ChatGPT/Ollama answers, connect this screen to an HTTP AI server.";
+    }
+
+    private static boolean containsAny(String text, String... words) {
+        for (String word : words) {
+            if (text.contains(word)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
